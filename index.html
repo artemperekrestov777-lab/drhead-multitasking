@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr.Head: Обслуживание нескольких клиентов</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            color: #161616;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .slide {
+            display: none;
+            background: linear-gradient(135deg, #FFFFFF 0%, #f9f9f9 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-footer {
+            position: absolute;
+            bottom: 15px;
+            right: 25px;
+            font-size: 11px;
+            color: #888989;
+            font-weight: 600;
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #00AEFF 0%, #0088cc 100%);
+        }
+
+        .slide.active.full-screen {
+            display: block;
+            width: 90%;
+            max-width: 1200px;
+            height: 85vh;
+            padding: 40px 50px 60px 50px;
+        }
+
+        .slide-1 {
+            background: linear-gradient(135deg, #161616 0%, #0a0a0a 100%) !important;
+            color: #FFFFFF;
+        }
+
+        .slide-1 .slide-footer {
+            color: #888989;
+        }
+
+        .slide.previous {
+            display: block;
+            width: 30%;
+            height: 85vh;
+            padding: 15px 15px 80px 15px;
+            opacity: 0.5;
+            transform: scale(0.95);
+            transition: all 0.3s ease;
+        }
+
+        .slide.previous h1 {
+            font-size: 18px !important;
+            margin-bottom: 8px !important;
+        }
+
+        .slide.previous h2 {
+            font-size: 14px !important;
+            margin-bottom: 6px !important;
+        }
+
+        .slide.previous p,
+        .slide.previous li {
+            font-size: 9px !important;
+            line-height: 1.3 !important;
+        }
+
+        .slide.previous .stat-grid,
+        .slide.previous .info-box,
+        .slide.previous .content-box {
+            padding: 8px !important;
+            margin: 5px 0 !important;
+        }
+
+        .slide.active:not(.full-screen) {
+            display: block;
+            width: 65%;
+            height: 85vh;
+            padding: 25px 25px 60px 25px;
+        }
+
+        /* WOW Effects for Slide 1 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(0, 174, 255, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(0, 174, 255, 0.8);
+            }
+        }
+
+        .slide-1 .logo {
+            animation: fadeInUp 1s ease-out, pulse 2s ease-in-out infinite;
+        }
+
+        .slide-1 h1 {
+            animation: fadeInUp 1.2s ease-out;
+            background: linear-gradient(90deg, #00AEFF 0%, #00d4ff 50%, #00AEFF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .slide-1 .subtitle {
+            animation: fadeInUp 1.4s ease-out;
+            color: #888989;
+        }
+
+        .slide-1 .content-box {
+            animation: fadeInUp 1.6s ease-out, glow 3s ease-in-out infinite;
+            background: linear-gradient(135deg, #00AEFF15 0%, #00AEFF05 100%);
+            border: 2px solid #00AEFF;
+        }
+
+        h1 {
+            color: #00AEFF;
+            font-size: 24px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        h2 {
+            color: #00AEFF;
+            font-size: 16px;
+            margin: 10px 0 6px 0;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 11px;
+            line-height: 1.4;
+            color: #161616;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #888989;
+            text-align: center;
+            margin-top: 6px;
+        }
+
+        .logo {
+            color: #00AEFF;
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #e6f7ff 0%, #f0faff 100%);
+            border-left: 4px solid #00AEFF;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 26px;
+            color: #00AEFF;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-text {
+            font-size: 12px;
+            color: #161616;
+            line-height: 1.4;
+        }
+
+        .content-box {
+            background: linear-gradient(135deg, #e6f7ff 0%, #f0faff 100%);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #fff4e6 0%, #fff9f0 100%);
+            border: 2px solid #00AEFF;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 8px 0;
+        }
+
+        ul {
+            list-style: none;
+            margin: 6px 0;
+        }
+
+        li {
+            font-size: 11px;
+            line-height: 1.4;
+            margin-bottom: 6px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        li::before {
+            content: '→';
+            color: #00AEFF;
+            position: absolute;
+            left: 0;
+            font-weight: 700;
+        }
+
+        .priority-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .priority-card {
+            background: linear-gradient(135deg, #e6f7ff 0%, #f0faff 100%);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            border: 2px solid #d0d0d0;
+            transition: all 0.3s ease;
+        }
+
+        .priority-card:hover {
+            border-color: #00AEFF;
+            transform: translateY(-5px);
+        }
+
+        .priority-number {
+            font-size: 24px;
+            color: #00AEFF;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .quote-box {
+            background: linear-gradient(135deg, #e6f7ff 0%, transparent 100%);
+            border-left: 4px solid #00AEFF;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
+        }
+
+        .quote-text {
+            font-size: 11px;
+            color: #161616;
+            line-height: 1.4;
+            margin-bottom: 6px;
+        }
+
+        .quote-author {
+            font-size: 10px;
+            color: #00AEFF;
+            text-align: right;
+            font-style: normal;
+        }
+
+        .interactive-task {
+            background: linear-gradient(135deg, #e6f7ff 0%, #f0faff 100%);
+            border: 2px dashed #00AEFF;
+            border-radius: 12px;
+            padding: 12px;
+            margin: 8px 0;
+            text-align: center;
+        }
+
+        .task-title {
+            font-size: 14px;
+            color: #00AEFF;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .scenario-box {
+            background: #f5f5f5;
+            border: 1px solid #d0d0d0;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 6px 0;
+            text-align: left;
+        }
+
+        .key-messages {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        .message-card {
+            background: linear-gradient(135deg, #00AEFF 0%, #0088cc 100%);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 174, 255, 0.3);
+        }
+
+        .message-text {
+            font-size: 18px;
+            color: #FFFFFF;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 2px solid #00AEFF;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #00AEFF 0%, #0088cc 100%);
+            color: #FFFFFF;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 174, 255, 0.3);
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 174, 255, 0.5);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            color: #00AEFF;
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .step-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .step-card {
+            background: linear-gradient(135deg, #e6f7ff 0%, #f0faff 100%);
+            border: 2px solid #00AEFF;
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .step-number {
+            font-size: 16px;
+            color: #00AEFF;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .step-text {
+            font-size: 9px;
+            color: #161616;
+            line-height: 1.2;
+        }
+
+        @media (max-width: 768px) {
+            .presentation-container {
+                flex-direction: column;
+                padding: 10px;
+            }
+
+            .slide.previous {
+                width: 100%;
+                height: 30%;
+            }
+
+            .slide.active:not(.full-screen) {
+                width: 100%;
+                height: 65%;
+            }
+
+            .stat-grid,
+            .priority-grid,
+            .key-messages {
+                grid-template-columns: 1fr;
+            }
+
+            .step-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .fullscreen-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00AEFF 0%, #0088cc 100%);
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 174, 255, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .fullscreen-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 7px 20px rgba(0, 174, 255, 0.5);
+        }
+
+        .fullscreen-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <!-- СЛАЙД 1: Титульный -->
+        <div class="slide slide-1 active full-screen">
+            <div class="logo" style="font-size: 42px;">Dr.Head</div>
+            <h1 style="font-size: 46px; margin: 30px 0 20px 0; font-weight: 900; letter-spacing: -1px;">Обслуживание нескольких клиентов</h1>
+            <p class="subtitle" style="font-size: 26px; margin-bottom: 40px; color: #00AEFF; font-weight: 600;">Искусство многозадачности в продажах</p>
+
+            <div class="content-box" style="margin-top: 40px; padding: 25px;">
+                <h2 style="text-align: center; margin-bottom: 20px; font-size: 22px; color: #00AEFF; font-weight: 700;">🎯 Что вы узнаете сегодня</h2>
+                <ul style="max-width: 750px; margin: 0 auto;">
+                    <li style="font-size: 16px; color: #FFFFFF; margin-bottom: 12px; font-weight: 500;"><span style="color: #00AEFF; font-size: 18px;">⚡</span> Как работать с <strong style="color: #00AEFF;">несколькими клиентами</strong> одновременно без потери качества</li>
+                    <li style="font-size: 16px; color: #FFFFFF; margin-bottom: 12px; font-weight: 500;"><span style="color: #00AEFF; font-size: 18px;">🎯</span> Техники <strong style="color: #00AEFF;">приоритизации</strong> и быстрого переключения</li>
+                    <li style="font-size: 16px; color: #FFFFFF; margin-bottom: 12px; font-weight: 500;"><span style="color: #00AEFF; font-size: 18px;">💰</span> Как <strong style="color: #00AEFF;">не терять продажи</strong> из-за очередей</li>
+                    <li style="font-size: 16px; color: #FFFFFF; margin-bottom: 0; font-weight: 500;"><span style="color: #00AEFF; font-size: 18px;">🚀</span> Практические инструменты для <strong style="color: #00AEFF;">эффективной многозадачности</strong></li>
+                </ul>
+            </div>
+
+            <p style="text-align: center; margin-top: 50px; font-size: 14px; color: #888989; font-weight: 500;">
+                Тренинг для сотрудников Dr.Head | 2-3 часа
+            </p>
+            <div class="slide-footer" style="font-weight: 700;">Dr.Head 2025</div>
+        </div>
+
+        <!-- СЛАЙД 2: Статистика -->
+        <div class="slide slide-2">
+            <h1 style="font-size: 32px;">Цена ожидания</h1>
+            <p style="text-align: center; color: #888989; margin-bottom: 15px; font-size: 13px;">
+                Почему время ожидания — это деньги компании
+            </p>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-number">73%</div>
+                    <div class="stat-text">клиентов уходят, если ждут более 5 минут</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">86%</div>
+                    <div class="stat-text">покупателей не вернутся в магазин, если столкнулись с очередью</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">5 мин</div>
+                    <div class="stat-text">критический порог терпения среднего покупателя</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">60%</div>
+                    <div class="stat-text">клиентов готовы ждать, если видят, что ими занимаются</div>
+                </div>
+            </div>
+
+            <div class="quote-box" style="margin-top: 20px;">
+                <p class="quote-text">
+                    "В розничной торговле каждая минута ожидания снижает вероятность покупки на 10%"
+                </p>
+                <p class="quote-author">— Исследование Harvard Business Review</p>
+            </div>
+
+            <div class="info-box">
+                <p style="font-size: 12px; margin: 0;">
+                    💡 <strong>Главный вывод:</strong> Умение работать с несколькими клиентами одновременно —
+                    это не просто навык, это конкурентное преимущество магазина.
+                </p>
+            </div>
+            <div class="slide-footer">Dr.Head 2025</div>
+        </div>
+
+        <!-- СЛАЙД 3: Проблема очередей -->
+        <div class="slide slide-3">
+            <h1 style="font-size: 32px;">Почему клиенты уходят?</h1>
+            <p style="text-align: center; color: #888989; margin-bottom: 20px;">
+                4 главные причины потери продаж в часы пик
+            </p>
+
+            <div class="content-box">
+                <h2>❌ Проблема #1: Никто не подошёл</h2>
+                <p>Клиент зашёл в магазин, но все продавцы заняты. Через 2-3 минуты он уходит к конкурентам.</p>
+            </div>
+
+            <div class="content-box">
+                <h2>❌ Проблема #2: Начали, но бросили</h2>
+                <p>Продавец начал консультацию, но переключился на другого клиента и не вернулся. Первый клиент чувствует себя проигнорированным.</p>
+            </div>
+
+            <div class="content-box">
+                <h2>❌ Проблема #3: Поверхностная консультация</h2>
+                <p>Торопясь обслужить всех, продавец даёт короткие ответы без выявления потребностей. Клиент не получает ценности.</p>
+            </div>
+
+            <div class="content-box">
+                <h2>❌ Проблема #4: Конфликт между клиентами</h2>
+                <p>Два клиента спорят, кто был первым. Оба остаются недовольны, один может уйти.</p>
+            </div>
+
+            <div class="info-box" style="margin-top: 15px;">
+                <p style="font-size: 13px; margin: 0; text-align: center; color: #00AEFF; font-weight: 600;">
+                    Сегодня вы научитесь решать все эти проблемы!
+                </p>
+            </div>
+        </div>
+
+        <!-- СЛАЙД 4: Техника приоритизации -->
+        <div class="slide slide-4">
+            <h1 style="font-size: 32px;">Матрица приоритетов</h1>
+            <p style="text-align: center; color: #888989; margin-bottom: 15px; font-size: 13px;">
+                Кого обслуживать первым?
+            </p>
+
+            <div class="priority-grid">
+                <div class="priority-card" style="background: linear-gradient(135deg, #ffe6e6 0%, #fff0f0 100%); border-color: #ff4444;">
+                    <div class="priority-number" style="color: #cc0000; font-size: 26px;">🔥 1</div>
+                    <h2 style="font-size: 16px; color: #cc0000; margin: 8px 0;">СРОЧНО</h2>
+                    <p style="font-size: 12px; color: #161616;">Клиент ждёт >3 мин, проявляет нетерпение, смотрит на выход</p>
+                </div>
+                <div class="priority-card">
+                    <div class="priority-number" style="font-size: 26px;">⚡ 2</div>
+                    <h2 style="font-size: 16px; margin: 8px 0;">БЫСТРОЕ</h2>
+                    <p style="font-size: 12px;">Простой вопрос, который можно решить за 30-60 секунд</p>
+                </div>
+                <div class="priority-card">
+                    <div class="priority-number" style="font-size: 26px;">💰 3</div>
+                    <h2 style="font-size: 16px; margin: 8px 0;">ГОТОВ КУПИТЬ</h2>
+                    <p style="font-size: 12px;">Клиент на стадии принятия решения, нужен последний толчок</p>
+                </div>
+            </div>
+
+            <div class="content-box" style="margin-top: 12px; padding: 12px;">
+                <h2 style="font-size: 18px;">📋 Алгоритм действий в час пик</h2>
+                <ul>
+                    <li style="font-size: 12px;"><strong>Шаг 1:</strong> Визуальный контакт со всеми (3-5 сек)</li>
+                    <li style="font-size: 12px;"><strong>Шаг 2:</strong> Кто ждёт дольше? Кто нетерпелив?</li>
+                    <li style="font-size: 12px;"><strong>Шаг 3:</strong> Приоритет быстрым вопросам</li>
+                    <li style="font-size: 12px;"><strong>Шаг 4:</strong> "Буду через 2 минуты!"</li>
+                </ul>
+            </div>
+
+            <div class="info-box" style="padding: 12px;">
+                <p style="font-size: 13px; margin: 0;">
+                    <strong>💡 Золотое правило:</strong> 20 сек с каждым лучше, чем 5 мин с одним
+                </p>
+            </div>
+            <div class="slide-footer">Dr.Head 2025</div>
+        </div>
+
+        <!-- СЛАЙД 5: Интерактив #1 -->
+        <div class="slide slide-5">
+            <h1 style="font-size: 32px;">Интерактив #1</h1>
+            <p class="subtitle">Определи приоритет клиента</p>
+
+            <div class="interactive-task">
+                <div class="task-title">🎯 ИГРА: Расставь приоритеты</div>
+
+                <div class="scenario-box">
+                    <p style="margin-bottom: 10px;"><strong>СИТУАЦИЯ:</strong></p>
+                    <p style="font-size: 12px; line-height: 1.5;">
+                        В магазине 4 клиента. Вы только что закончили консультацию и свободны.
+                        Расставьте клиентов в порядке обслуживания (от 1 до 4):
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px;">
+                    <div class="scenario-box">
+                        <p style="font-size: 13px; margin-bottom: 8px;"><strong>👔 Клиент A</strong></p>
+                        <p style="font-size: 11px;">Мужчина 35 лет, ходит по залу 7 минут, смотрит на часы, достал телефон</p>
+                    </div>
+                    <div class="scenario-box">
+                        <p style="font-size: 13px; margin-bottom: 8px;"><strong>🎧 Клиент B</strong></p>
+                        <p style="font-size: 11px;">Девушка только зашла (30 сек назад), держит наушники, смотрит на ценники</p>
+                    </div>
+                    <div class="scenario-box">
+                        <p style="font-size: 13px; margin-bottom: 8px;"><strong>🎸 Клиент C</strong></p>
+                        <p style="font-size: 11px;">Парень у гитар, ждёт 4 минуты, подошёл и спросил: "Можно примерить вон ту Fender?"</p>
+                    </div>
+                    <div class="scenario-box">
+                        <p style="font-size: 13px; margin-bottom: 8px;"><strong>👨‍👩‍👦 Клиент D</strong></p>
+                        <p style="font-size: 11px;">Семейная пара с ребёнком, стоят у кассы с микрофоном в руках, оглядываются</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box" style="margin-top: 15px;">
+                <p style="font-size: 12px; margin: 0;">
+                    <strong>📝 ЗАДАНИЕ:</strong> Обсудите в парах, кто должен быть первым, вторым, третьим и четвёртым.
+                    Объясните свою логику. (5 минут)
+                </p>
+            </div>
+
+            <div class="content-box" style="margin-top: 10px; padding: 12px;">
+                <p style="font-size: 11px; margin: 0; text-align: center;">
+                    <strong>Правильный ответ:</strong> D → A → C → B <br>
+                    (готовы купить → долго ждёт → конкретный запрос → только зашла)
+                </p>
+            </div>
+            <div class="slide-footer">Dr.Head 2025</div>
+        </div>
+
+        <!-- СЛАЙД 6: Техника переключения -->
+        <div class="slide slide-6">
+            <h1 style="font-size: 32px;">Техника "Якорь-Мост-Якорь"</h1>
+            <p style="text-align: center; color: #888989; margin-bottom: 25px; font-size: 15px;">
+                Как переключаться между клиентами без потери качества
+            </p>
+
+            <div class="step-grid" style="margin-bottom: 25px;">
+                <div class="step-card" style="padding: 15px;">
+                    <div class="step-number" style="font-size: 24px;">1️⃣</div>
+                    <div class="step-text" style="font-size: 13px;">ЯКОРЬ: Зафиксируй прогресс</div>
+                </div>
+                <div class="step-card" style="padding: 15px;">
+                    <div class="step-number" style="font-size: 24px;">2️⃣</div>
+                    <div class="step-text" style="font-size: 13px;">МОСТ: Объясни причину</div>
+                </div>
+                <div class="step-card" style="padding: 15px;">
+                    <div class="step-number" style="font-size: 24px;">3️⃣</div>
+                    <div class="step-text" style="font-size: 13px;">ОБЕЩАНИЕ: Назови время</div>
+                </div>
+                <div class="step-card" style="padding: 15px;">
+                    <div class="step-number" style="font-size: 24px;">4️⃣</div>
+                    <div class="step-text" style="font-size: 13px;">ДЕЙСТВИЕ: Займи клиента</div>
+                </div>
+                <div class="step-card" style="padding: 15px;">
+                    <div class="step-number" style="font-size: 24px;">5️⃣</div>
+                    <div class="step-text" style="font-size: 13px;">ВОЗВРАТ: Вернись</div>
+                </div>
+            </div>
+
+            <div class="content-box" style="margin-top: 25px; padding: 18px; margin-bottom: 20px;">
+                <h2 style="font-size: 20px; margin-bottom: 15px;">💬 Примеры фраз</h2>
+                <ul style="margin: 0;">
+                    <li style="font-size: 14px; margin-bottom: 8px;"><strong>ЯКОРЬ:</strong> "Мы выбрали наушники до 15 000 руб"</li>
+                    <li style="font-size: 14px; margin-bottom: 8px;"><strong>МОСТ:</strong> "К нам обратился клиент с срочным вопросом"</li>
+                    <li style="font-size: 14px; margin-bottom: 8px;"><strong>ОБЕЩАНИЕ:</strong> "Буду через 2 минуты, хорошо?"</li>
+                    <li style="font-size: 14px; margin-bottom: 8px;"><strong>ДЕЙСТВИЕ:</strong> "Примерьте Sony и Bose"</li>
+                    <li style="font-size: 14px; margin-bottom: 0;"><strong>ВОЗВРАТ:</strong> "Успели примерить Sony?"</li>
+                </ul>
+            </div>
+
+            <div class="info-box" style="padding: 18px; margin-bottom: 20px;">
+                <p style="font-size: 15px; margin: 0;">
+                    ⚠️ <strong>ВАЖНО:</strong> Никогда не уходите молча! Всегда используйте "мост"
+                </p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px;">
+                <div style="background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); padding: 10px; border-radius: 8px; border: 2px solid #ff4444;">
+                    <h3 style="color: #FFFFFF; font-size: 14px; margin: 0 0 6px 0; text-align: center;">❌ НЕПРАВИЛЬНО</h3>
+                    <p style="color: #FFFFFF; font-size: 11px; margin: 0; line-height: 1.4;">
+                        "Подождите" — <em>уходит</em><br>
+                        <strong>→</strong> Клиент брошен
+                    </p>
+                </div>
+                <div style="background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%); padding: 10px; border-radius: 8px; border: 2px solid #00ff88;">
+                    <h3 style="color: #161616; font-size: 14px; margin: 0 0 6px 0; text-align: center;">✅ ПРАВИЛЬНО</h3>
+                    <p style="color: #161616; font-size: 11px; margin: 0; line-height: 1.4;">
+                        "Выбрали Sony. Помогу другому. 2 мин. Примерьте"<br>
+                        <strong>→</strong> Клиент спокоен, занят
+                    </p>
+                </div>
+            </div>
+            <div class="slide-footer">Dr.Head 2025</div>
+        </div>
+
+        <!-- СЛАЙД 7: Быстрое обслуживание -->
+        <div class="slide slide-7">
+            <h1 style="font-size: 32px;">5 способов ускорить обслуживание</h1>
+            <p style="text-align: center; color: #888989; margin-bottom: 20px;">
+                Как обслужить больше клиентов без потери качества
+            </p>
+
+            <div class="content-box">
+                <h2>⚡ Способ #1: Быстрая квалификация</h2>
+                <p>Первые 30 секунд — диагностика потребности. Вместо: "Чем помочь?" → "Выбираете для себя или в подарок? Есть конкретная модель на примете?"</p>
+            </div>
+
+            <div class="content-box">
+                <h2>⚡ Способ #2: Метод "2 варианта"</h2>
+                <p>Не показывайте 10 моделей. Спросите 2-3 критерия, предложите 2 лучших варианта. Сэкономите 5-7 минут на консультации.</p>
+            </div>
+
+            <div class="content-box">
+                <h2>⚡ Способ #3: Параллельная обработка</h2>
+                <p>Пока клиент примеряет/тестирует товар — подойдите к следующему. "Пока вы примеряете, я помогу другому покупателю и сразу вернусь!"</p>
+            </div>
+
+            <div class="content-box">
+                <h2>⚡ Способ #4: Делегирование простых задач</h2>
+                <p>Коллега свободен? Попросите принести товар со склада, пока вы продолжаете консультацию.</p>
+            </div>
+
+            <div class="content-box">
+                <h2>⚡ Способ #5: Самообслуживание</h2>
+                <p>Некоторые клиенты предпочитают сами изучить товар. "Вот 3 модели в вашем бюджете. Протестируйте, я рядом — подзову, когда будут вопросы"</p>
+            </div>
+            <div class="slide-footer">Dr.Head 2025</div>
+        </div>
+
+        <!-- СЛАЙД 8: Интерактив #2 -->
+        <div class="slide slide-8">
+            <h1 style="font-size: 32px; margin-bottom: 8px;">Интерактив #2</h1>
+            <p class="subtitle" style="margin-bottom: 10px;">Ролевая игра: Три клиента одновременно</p>
+
+            <div class="interactive-task" style="padding: 10px; margin-bottom: 8px;">
+                <div class="task-title" style="font-size: 15px; margin-bottom: 8px;">🎭 РОЛЕВАЯ ИГРА</div>
+
+                <p style="font-size: 11px; margin: 8px 0; text-align: left;">
+                    <strong>Группы по 4:</strong> 1 продавец + 3 клиента
+                </p>
+
+                <div class="scenario-box" style="padding: 8px;">
+                    <p style="margin-bottom: 6px; font-size: 11px;"><strong>🎯 СЦЕНАРИЙ:</strong> Обслужить 3 клиентов за 5 минут</p>
+
+                    <div style="background: #e8e8e8; padding: 8px; border-radius: 6px; margin-top: 6px; border: 1px solid #d0d0d0;">
+                        <p style="font-size: 11px; margin-bottom: 5px; color: #161616;"><strong>👔 КЛИЕНТ 1:</strong> "Мне нужны наушники для игр до 20 000 руб"</p>
+                        <p style="font-size: 11px; margin-bottom: 5px; color: #161616;"><strong>🎸 КЛИЕНТ 2:</strong> "Где у вас медиаторы?" (быстрый вопрос)</p>
+                        <p style="font-size: 11px; margin: 0; color: #161616;"><strong>🎧 КЛИЕНТ 3:</strong> "Я примерил эти наушники, но басы слабоваты. Что посоветуете?"</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-box" style="margin-top: 8px; padding: 10px;">
+                <h2 style="font-size: 14px; margin-bottom: 6px;">📝 Критерии оценки</h2>
+                <ul style="margin: 0; font-size: 10px; line-height: 1.4;">
+                    <li>✅ Контакт со всеми в первые 30 секунд</li>
+                    <li>✅ Техника "Якорь-Мост-Якорь"</li>
+                    <li>✅ Приоритеты: быстрый вопрос → покупка → примерка</li>
+                    <li>✅ Никто не почувствовал себя проигнорированным</li>
+                </ul>
+            </div>
+
+            <div class="info-box" style="margin-top: 8px; padding: 8px;">
+                <p style="font-size: 10px; margin: 0; text-align: center;">
+                    <strong>⏱️ ВРЕМЯ:</strong> 10 мин игра + 5 мин обсуждение
+                </p>
+            </div>
+            <div class="slide-footer">Dr.Head 2025</div>
+        </div>
+
+        <!-- СЛАЙД 9: Работа в команде -->
+        <div class="slide slide-9">
+            <h1 style="font-size: 32px;">Командная работа</h1>
+            <p style="text-align: center; color: #888989; margin-bottom: 12px; font-size: 13px;">
+                Как передать клиента коллеге правильно
+            </p>
+
+            <div class="content-box" style="margin: 8px 0; padding: 12px;">
+                <h2 style="font-size: 16px; margin: 6px 0;">🤝 Передача для ускорения</h2>
+                <p style="font-size: 12px;">"Иван поможет выбрать гитару, а я помогу другому клиенту"</p>
+            </div>
+
+            <div class="content-box" style="margin: 8px 0; padding: 12px;">
+                <h2 style="font-size: 16px; margin: 6px 0;">🤝 Экспертная помощь</h2>
+                <p style="font-size: 12px;">"Марина — эксперт по студийному оборудованию, расскажет про XLR"</p>
+            </div>
+
+            <div class="content-box" style="margin: 8px 0; padding: 12px;">
+                <h2 style="font-size: 16px; margin: 6px 0;">🤝 Продолжение начатого</h2>
+                <p style="font-size: 12px;">"Коллега продолжит. Выбор сузили до Sony и Bose"</p>
+            </div>
+
+            <div class="info-box" style="margin: 10px 0; padding: 12px;">
+                <h2 style="font-size: 16px; margin-bottom: 8px;">⚠️ 3 правила передачи</h2>
+                <ul style="margin: 0;">
+                    <li style="font-size: 12px; margin-bottom: 5px;"><strong>1.</strong> Представьте коллегу + экспертность</li>
+                    <li style="font-size: 12px; margin-bottom: 5px;"><strong>2.</strong> Передайте контекст</li>
+                    <li style="font-size: 12px; margin-bottom: 0;"><strong>3.</strong> Убедитесь в согласии клиента</li>
+                </ul>
+            </div>
+            <div class="slide-footer">Dr.Head 2025</div>
+        </div>
+
+        <!-- СЛАЙД 10: Интерактив #3 -->
+        <div class="slide slide-10">
+            <h1 style="font-size: 32px;">Интерактив #3</h1>
+            <p class="subtitle" style="font-size: 13px;">Блиц-квиз: Многозадачность в действии</p>
+
+            <div class="interactive-task" style="padding: 12px; margin: 8px 0;">
+                <div class="task-title" style="font-size: 16px; margin-bottom: 10px;">⚡ БЛИЦ-КВИЗ</div>
+
+                <div class="scenario-box" style="padding: 8px; margin: 6px 0;">
+                    <p style="font-size: 12px; margin-bottom: 5px;"><strong>1. Клиент ждёт 4 мин. Что делать?</strong></p>
+                    <p style="font-size: 11px;">А) Извиниться ✅  Б) Сразу "Чем помочь?"  В) Молча показывать</p>
+                </div>
+
+                <div class="scenario-box" style="padding: 8px; margin: 6px 0;">
+                    <p style="font-size: 12px; margin-bottom: 5px;"><strong>2. Ещё 2 клиента ждут. Действия?</strong></p>
+                    <p style="font-size: 11px;">А) Ускорить  Б) Контакт, "2 минуты!" ✅  В) Продолжать</p>
+                </div>
+
+                <div class="scenario-box" style="padding: 8px; margin: 6px 0;">
+                    <p style="font-size: 12px; margin-bottom: 5px;"><strong>3. Отходите от клиента. Лучшая фраза?</strong></p>
+                    <p style="font-size: 11px;">А) "Вернусь"  Б) "Минутку"  В) "Через 2 мин. Тестируйте" ✅</p>
+                </div>
+
+                <div class="scenario-box" style="padding: 8px; margin: 6px 0;">
+                    <p style="font-size: 12px; margin-bottom: 5px;"><strong>4. Два клиента одновременно. Как поступить?</strong></p>
+                    <p style="font-size: 11px;">А) Кто первый  Б) "Помогу обоим. Быстрый вопрос?" ✅</p>
+                </div>
+            </div>
+
+            <div class="info-box" style="margin-top: 10px; padding: 10px;">
+                <p style="font-size: 12px; margin: 0; text-align: center;">
+                    <strong>📊</strong> 4/4 — Мастер | 2-3 — Хорошо | 0-1 — Повторите
+                </p>
+            </div>
+            <div class="slide-footer">Dr.Head 2025</div>
+        </div>
+
+        <!-- СЛАЙД 11: Кейс из практики -->
+        <div class="slide slide-11">
+            <h1 style="font-size: 32px;">Кейс из практики Dr.Head</h1>
+            <p style="text-align: center; color: #888989; margin-bottom: 12px; font-size: 13px;">
+                Как Анна увеличила продажи на 40% за месяц
+            </p>
+
+            <div class="content-box" style="border-left: 4px solid #00AEFF; padding: 12px; margin: 8px 0;">
+                <h2 style="font-size: 16px; margin: 6px 0;">📖 Ситуация</h2>
+                <p style="font-size: 12px;">
+                    Анна работает в Dr.Head 2 года. В часы пик 4-6 клиентов одновременно.
+                    Раньше обслуживала по очереди — 2-3 продажи, остальные уходили.
+                </p>
+            </div>
+
+            <div class="content-box" style="border-left: 4px solid #ff4444; padding: 12px; margin: 8px 0;">
+                <h2 style="font-size: 16px; margin: 6px 0;">❌ Проблема</h2>
+                <p style="font-size: 12px; margin: 0;">
+                    • Клиенты уходили<br>
+                    • 15-20 минут на клиента<br>
+                    • Стресс и вина
+                </p>
+            </div>
+
+            <div class="content-box" style="border-left: 4px solid #00ff88; padding: 12px; margin: 8px 0;">
+                <h2 style="font-size: 16px; margin: 6px 0;">✅ Решение</h2>
+                <p style="font-size: 12px; margin: 0;">
+                    Контакт за 30 сек • Матрица • "Якорь-Мост-Якорь" • Команда
+                </p>
+            </div>
+
+            <div class="content-box" style="background: linear-gradient(135deg, #00AEFF 0%, #0088cc 100%); padding: 12px; margin: 8px 0;">
+                <h2 style="font-size: 16px; margin: 6px 0 10px 0; color: #FFFFFF;">📊 Результат за 1 месяц</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 6px;">
+                        <p style="font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #FFFFFF;">+40%</p>
+                        <p style="font-size: 11px; margin: 0; color: #FFFFFF;">продаж</p>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 6px;">
+                        <p style="font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #FFFFFF;">-70%</p>
+                        <p style="font-size: 11px; margin: 0; color: #FFFFFF;">ушедших</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quote-box" style="padding: 12px; margin: 8px 0;">
+                <p class="quote-text" style="font-size: 12px; margin: 0;">
+                    "Теперь я не боюсь часов пик — это мой звёздный час!" — Анна
+                </p>
+            </div>
+            <div class="slide-footer">Dr.Head 2025</div>
+        </div>
+
+        <!-- СЛАЙД 12: Финальный -->
+        <div class="slide slide-12">
+            <h1 style="font-size: 32px;">Ключевые мысли</h1>
+            <p style="text-align: center; color: #888989; margin-bottom: 25px;">
+                Что важно запомнить
+            </p>
+
+            <div class="key-messages">
+                <div class="message-card">
+                    <p class="message-text">
+                        🎯<br>
+                        Первые 30 секунд контакта со ВСЕМИ клиентами — это инвестиция в продажу
+                    </p>
+                </div>
+                <div class="message-card">
+                    <p class="message-text">
+                        ⚡<br>
+                        "Якорь-Мост-Якорь" превращает хаос в систему
+                    </p>
+                </div>
+                <div class="message-card">
+                    <p class="message-text">
+                        🤝<br>
+                        Командная работа удваивает результаты каждого
+                    </p>
+                </div>
+                <div class="message-card">
+                    <p class="message-text">
+                        ⏱️<br>
+                        Лучше 2 минуты с тремя клиентами, чем 6 минут с одним
+                    </p>
+                </div>
+            </div>
+
+            <div class="quote-box" style="margin-top: 25px; border: 3px solid #00AEFF; background: rgba(0, 174, 255, 0.1);">
+                <p class="quote-text" style="font-size: 16px; font-weight: 600;">
+                    "Многозадачность в продажах — это не хаос. Это искусство управления вниманием,
+                    временем и приоритетами. И это искусство можно освоить."
+                </p>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px;">
+                <p style="font-size: 20px; color: #00AEFF; font-weight: 700; margin-bottom: 15px;">
+                    Спасибо за внимание!
+                </p>
+                <p style="font-size: 14px; color: #888989;">
+                    Теперь вы готовы работать с несколькими клиентами одновременно 🚀
+                </p>
+            </div>
+
+            <div class="logo" style="margin-top: 40px; font-size: 28px;">Dr.Head</div>
+            <div class="slide-footer">Dr.Head 2025</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">← Назад</button>
+        <span class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">12</span></span>
+        <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Вперёд →</button>
+    </div>
+
+    <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Полноэкранный режим (F11)">
+        🖥️
+    </button>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 12;
+
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const currentSlideSpan = document.getElementById('currentSlide');
+
+            if (n > totalSlides) {
+                currentSlide = totalSlides;
+            } else if (n < 1) {
+                currentSlide = 1;
+            } else {
+                currentSlide = n;
+            }
+
+            // Hide all slides and remove all classes
+            slides.forEach(slide => {
+                slide.classList.remove('active', 'previous', 'full-screen');
+            });
+
+            // Show current slide
+            if (currentSlide === 1) {
+                // First slide - full screen
+                slides[0].classList.add('active', 'full-screen');
+            } else {
+                // Other slides - two-column layout
+                // Always show first slide on the left as reminder
+                slides[0].classList.add('previous');
+                // Show current slide on the right
+                slides[currentSlide - 1].classList.add('active');
+            }
+
+            // Update counter
+            currentSlideSpan.textContent = currentSlide;
+
+            // Update button states
+            prevBtn.disabled = currentSlide === 1;
+            nextBtn.disabled = currentSlide === totalSlides;
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowLeft') {
+                changeSlide(-1);
+            } else if (event.key === 'ArrowRight' || event.key === ' ') {
+                event.preventDefault();
+                changeSlide(1);
+            } else if (event.key === 'Home') {
+                showSlide(1);
+            } else if (event.key === 'End') {
+                showSlide(totalSlides);
+            }
+        });
+
+        // Touch support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', function(event) {
+            touchStartX = event.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', function(event) {
+            touchEndX = event.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) {
+                changeSlide(1); // Swipe left - next slide
+            }
+            if (touchEndX > touchStartX + 50) {
+                changeSlide(-1); // Swipe right - previous slide
+            }
+        }
+
+        // Fullscreen toggle
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`Не удалось включить полноэкранный режим: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Update fullscreen button on fullscreen change
+        document.addEventListener('fullscreenchange', function() {
+            const btn = document.getElementById('fullscreenBtn');
+            if (document.fullscreenElement) {
+                btn.textContent = '🔲'; // Icon for exit fullscreen
+                btn.title = 'Выйти из полноэкранного режима (Esc)';
+            } else {
+                btn.textContent = '🖥️'; // Icon for enter fullscreen
+                btn.title = 'Полноэкранный режим (F11)';
+            }
+        });
+
+        // Initialize
+        showSlide(1);
+    </script>
+</body>
+</html>
